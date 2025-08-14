@@ -1,14 +1,12 @@
 # Build folders
-/build/
+build/
+.cache/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
 *.sln
 *.vcxproj*
-
-# External libraries (user-provided)
-/external/
 
 # OS-specific
 .DS_Store
