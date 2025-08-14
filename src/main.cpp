@@ -2,10 +2,11 @@
 #include <raylib.h>
 #include <raymath.h>
 
-static R3D_Mesh plane = {0};
-static R3D_Mesh sphere = {0};
-static R3D_Material material = {0};
-static Camera3D camera = {0};
+#include <vector>
+
+static R3D_Mesh meshSphere = {0};
+static R3D_Material matDefault = {0};
+static Camera3D camDefault = {0};
 
 int main()
 {
@@ -24,46 +25,63 @@ int main()
 	// Initialize r3d after the window is created (disabled while isolating issue)
 	R3D_Init(GetScreenWidth(), GetScreenHeight(), 0);
 
-	plane = R3D_GenMeshPlane(1000, 1000, 1, 1, true);
-	sphere = R3D_GenMeshSphere(0.5f, 64, 64, true);
-	material = R3D_GetDefaultMaterial();
-
-	camera = (Camera3D) {
+	camDefault = (Camera3D) {
 		.position = (Vector3) {0, 2, 2},
 		.target = (Vector3) {0, 0, 0},
 		.up = (Vector3) {0, 1, 0},
 		.fovy = 60,
 	};
 
-	R3D_Light light = R3D_CreateLight(R3D_LIGHT_SPOT);
-	{
-		R3D_LightLookAt(light, (Vector3) {0, 10, 5}, (Vector3) {0});
-		R3D_EnableShadow(light, 4096);
-		R3D_SetLightActive(light, true);
+    R3D_Light light = R3D_CreateLight(R3D_LIGHT_DIR);
+    {
+        R3D_SetLightDirection(light, (Vector3) { 0, -1, 0 });
+        R3D_SetLightActive(light, true);
+    }
+
+	std::vector<Matrix> instances;
+
+	const int xInstances = 100;
+	const int yInstances = 100;
+
+	const float spacing = 0.05f;
+
+	// center the instances
+	const float offsetX = (xInstances * spacing) / 2;
+	const float offsetZ = (yInstances * spacing) / 2;
+
+	for (int x = 0; x < xInstances; x++) {
+		for (int y = 0; y < yInstances; y++) {
+			instances.push_back(MatrixTranslate(x * spacing - offsetX, 0, y * spacing - offsetZ));
+		}
 	}
 
-	while (!WindowShouldClose()) {
+    meshSphere = R3D_GenMeshSphere(0.01f, 16, 16, true);
+	matDefault = R3D_GetDefaultMaterial();
+    {
+        matDefault.albedo.color = (Color){255, 255, 255, 255};
+        matDefault.blendMode = R3D_BLEND_ADDITIVE;
+    }
 
-		UpdateCamera(&camera, CAMERA_ORBITAL);
+	while (!WindowShouldClose()) {
+		UpdateCamera(&camDefault, CAMERA_ORBITAL);
 
 		BeginDrawing();
-		ClearBackground(BLACK);
 
-		R3D_Begin(camera);
-            R3D_DrawMesh(&plane, &material, MatrixTranslate(0, -0.5f, 0));
-            R3D_DrawMesh(&sphere, &material, MatrixIdentity());
+		R3D_Begin(camDefault);
+		R3D_SetBackgroundColor(Color {0, 0, 255, 255});
+		R3D_DrawMeshInstanced(&meshSphere, &matDefault, instances.data(), instances.size());
 		R3D_End();
 
-		const auto text = "Hello, Raylib and R3D!";
-		const auto text_width = MeasureText(text, 20);
-		const auto text_height = 20;
+		// const auto text = "Hello, Raylib and R3D!";
+		// const auto text_width = MeasureText(text, 20);
+		// const auto text_height = 20;
 
-		DrawText(text, window_width / 2 - text_width / 2, window_height / 2 - text_height / 2, text_height, RED);
+		// DrawText(text, window_width / 2 - text_width / 2, window_height / 2 - text_height / 2, text_height, RED);
 		EndDrawing();
 	}
 
-    R3D_UnloadMesh(&plane);
-    R3D_UnloadMesh(&sphere);
+
+	R3D_UnloadMesh(&meshSphere);
 
 	R3D_Close();
 	CloseWindow();
